@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBT Exam App</title>
+<script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+#mainContainer { background: white; padding: 20px; border-radius: 10px; max-width: 700px; margin: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.2);}
+button { padding: 10px 20px; margin: 5px; border-radius: 5px; border: none; background-color: #4CAF50; color: white; cursor: pointer; }
+button:disabled { background-color: gray; cursor: not-allowed; }
+.answers button { display:block; margin:5px 0; text-align:left; }
+.timer { font-size: 18px; font-weight: bold; margin-bottom: 20px;}
+.correct { background-color: #4CAF50 !important; color:white; }
+.wrong { background-color: #f44336 !important; color:white; }
+</style>
+</head>
+<body>
+
+<div id="mainContainer">
+<h2>Welcome to the CBT Exam</h2>
+<label>Enter Your Name: <input type="text" id="studentName" /></label>
+<button onclick="startExam()">Start Exam</button>
+</div>
+
+<script>
+// ================== QUESTIONS ==================
+const questions = [
+    {q:"What is 2+2?", options:["2","3","4","5"], answer:"4"},
+    {q:"Capital of France?", options:["Paris","London","Berlin","Rome"], answer:"Paris"},
+    {q:"Sun rises from?", options:["West","East","North","South"], answer:"East"},
+    {q:"5*6=?", options:["11","30","20","25"], answer:"30"},
+    {q:"Water formula?", options:["H2O","CO2","NaCl","O2"], answer:"H2O"},
+    {q:"Fastest land animal?", options:["Cheetah","Lion","Tiger","Elephant"], answer:"Cheetah"},
+    {q:"Largest planet?", options:["Mars","Earth","Jupiter","Venus"], answer:"Jupiter"},
+    {q:"5-3=?", options:["1","2","3","4"], answer:"2"},
+    {q:"Square root of 16?", options:["2","4","8","6"], answer:"4"},
+    {q:"Which is a fruit?", options:["Carrot","Apple","Potato","Tomato"], answer:"Apple"},
+    {q:"First president of USA?", options:["Lincoln","Washington","Obama","Trump"], answer:"Washington"},
+    {q:"Opposite of cold?", options:["Hot","Warm","Cool","Freeze"], answer:"Hot"},
+    {q:"Color of sky?", options:["Green","Blue","Red","Black"], answer:"Blue"},
+    {q:"10/2=?", options:["4","5","6","3"], answer:"5"},
+    {q:"Primary color?", options:["Pink","Blue","White","Grey"], answer:"Blue"},
+    {q:"2^3=?", options:["8","6","9","4"], answer:"8"},
+    {q:"Largest ocean?", options:["Atlantic","Pacific","Indian","Arctic"], answer:"Pacific"},
+    {q:"Opposite of up?", options:["Down","Left","Right","Forward"], answer:"Down"},
+    {q:"Human skeleton has bones?", options:["206","205","201","210"], answer:"206"},
+    {q:"What gas do we breathe?", options:["Oxygen","CO2","Hydrogen","Nitrogen"], answer:"Oxygen"},
+    {q:"Hottest planet?", options:["Mercury","Venus","Mars","Earth"], answer:"Venus"},
+    {q:"Number of continents?", options:["5","6","7","8"], answer:"7"},
+    {q:"Which is a mammal?", options:["Shark","Dolphin","Salmon","Octopus"], answer:"Dolphin"},
+    {q:"5+7=?", options:["11","12","13","14"], answer:"12"},
+    {q:"Capital of Nigeria?", options:["Lagos","Abuja","Kano","Port Harcourt"], answer:"Abuja"},
+    {q:"Which is metal?", options:["Gold","Wood","Plastic","Paper"], answer:"Gold"},
+    {q:"Opposite of light?", options:["Dark","Heavy","Thin","Cold"], answer:"Dark"},
+    {q:"H2SO4 is?", options:["Acid","Base","Salt","Water"], answer:"Acid"},
+    {q:"Fastest bird?", options:["Eagle","Ostrich","Peregrine Falcon","Parrot"], answer:"Peregrine Falcon"},
+    {q:"10*0=?", options:["0","10","1","100"], answer:"0"},
+    {q:"Which is planet?", options:["Sun","Moon","Earth","Sirius"], answer:"Earth"},
+    {q:"Opposite of happy?", options:["Sad","Angry","Excited","Calm"], answer:"Sad"},
+    {q:"5+5=?", options:["9","10","11","12"], answer:"10"},
+    {q:"Largest desert?", options:["Sahara","Gobi","Kalahari","Arctic"], answer:"Sahara"},
+    {q:"Which is gas?", options:["Oxygen","Water","Iron","Sand"], answer:"Oxygen"},
+    {q:"Square root of 49?", options:["6","7","8","9"], answer:"7"},
+    {q:"Capital of UK?", options:["London","Paris","Rome","Berlin"], answer:"London"},
+    {q:"Which is animal?", options:["Apple","Dog","Carrot","Chair"], answer:"Dog"},
+    {q:"2+7=?", options:["8","9","10","11"], answer:"9"},
+    {q:"Opposite of old?", options:["Young","New","Fresh","Modern"], answer:"Young"},
+    {q:"Which is a planet?", options:["Mars","Sun","Moon","Comet"], answer:"Mars"},
+    {q:"H2O state?", options:["Liquid","Solid","Gas","Plasma"], answer:"Liquid"},
+];
+
+// ============= VARIABLES =============
+let currentQuestion = 0;
+let selectedAnswers = [];
+let timerInterval;
+let timeLeft = 30 * 60; // 30 minutes
+
+// ============= START EXAM =============
+function startExam() {
+    const nameInput = document.getElementById("studentName").value.trim();
+    if(!nameInput){ alert("Please enter your name"); return;}
+    window.studentName = nameInput;
+    document.getElementById("mainContainer").innerHTML = `
+        <div class="timer" id="timer"></div>
+        <div id="questionContainer"></div>
+        <div>
+            <button onclick="prevQuestion()">Previous</button>
+            <button onclick="nextQuestion()">Next</button>
+            <button onclick="finishExam()">Finish Exam</button>
+        </div>
+    `;
+    showQuestion();
+    startTimer();
+}
+
+// ============= SHOW QUESTION =============
+function showQuestion() {
+    const q = questions[currentQuestion];
+    const container = document.getElementById("questionContainer");
+    container.innerHTML = `
+        <h3>Question ${currentQuestion+1}/${questions.length}</h3>
+        <p>${q.q}</p>
+        <div class="answers">
+            ${q.options.map(opt=>`
+                <button 
+                    onclick="selectAnswer('${opt}', this)"
+                    ${selectedAnswers[currentQuestion] ? "disabled" : ""}
+                    ${selectedAnswers[currentQuestion] === opt ? (opt===q.answer?"correct":"wrong") : ""}
+                >${opt}</button>
+            `).join("")}
+        </div>
+    `;
+}
+
+// ============= SELECT ANSWER =============
+function selectAnswer(answer, btn) {
+    selectedAnswers[currentQuestion] = answer;
+    const buttons = document.querySelectorAll(".answers button");
+    buttons.forEach(b=>{
+        b.disabled = true;
+        if(b.textContent === questions[currentQuestion].answer) b.classList.add("correct");
+        else if(b.textContent === answer) b.classList.add("wrong");
+    });
+}
+
+// ============= NEXT / PREV =============
+function nextQuestion(){ if(currentQuestion<questions.length-1){ currentQuestion++; showQuestion(); } }
+function prevQuestion(){ if(currentQuestion>0){ currentQuestion--; showQuestion(); } }
+
+// ============= TIMER =============
+function startTimer() {
+    updateTimer();
+    timerInterval = setInterval(()=>{
+        timeLeft--;
+        updateTimer();
+        if(timeLeft<=0) finishExam();
+    },1000);
+}
+function updateTimer() {
+    const min = Math.floor(timeLeft/60);
+    const sec = timeLeft%60;
+    document.getElementById("timer").textContent = `Time Left: ${min}:${sec<10?'0':''}${sec}`;
+}
+
+// ============= FINISH EXAM =============
+function finishExam(){
+    clearInterval(timerInterval);
+
+    let score = 0;
+    questions.forEach((q,i)=>{ if(selectedAnswers[i]===q.answer) score++; });
+
+    const percent = Math.round((score/questions.length)*100);
+    const status = percent>=50?"PASS":"FAIL";
+
+    // SEND EMAIL VIA EMAILJS
+    emailjs.send("YOUR_SERVICE_ID","YOUR_TEMPLATE_ID",{
+        student_name: studentName,
+        score: `${score}/${questions.length}`,
+        percentage: `${percent}%`,
+        status: status,
+        admin_email: "Feranmiodulaja94@gmail.com"
+    }).then(()=> console.log("Email Sent Successfully!"))
+      .catch(err=> console.log("Failed to send email", err));
+
+    document.getElementById("mainContainer").innerHTML = `
+        <h2>Exam Finished 🎉</h2>
+        <h3>Name: ${studentName}</h3>
+        <h3>Score: ${score}/${questions.length}</h3>
+        <h2>${percent}%</h2>
+        <h2>${status}</h2>
+        <p>Result has been sent to admin email (Feranmiodulaja94@gmail.com).</p>
+    `;
+}
+</script>
+</body>
+</html>
